@@ -30,7 +30,7 @@ namespace Beacon
 
         private const uint PROCESS_VM_READ = 0x0010;
         private System.Windows.Forms.Timer memoryTimer;
-        private System.Windows.Forms.Timer chatTimer;
+        //private System.Windows.Forms.Timer chatTimer;
         private string connectionString = "server=eu02-sql.pebblehost.com;uid=customer_614448_main;pwd=Wy9P#W3aO5yAbwYQVw@f;database=customer_614448_main";
 
         public Form1()
@@ -38,8 +38,8 @@ namespace Beacon
             InitializeComponent();
             memoryTimer = new System.Windows.Forms.Timer { Interval = 10000 };
             memoryTimer.Tick += async (sender, e) => await MemoryTimer_TickAsync(sender, e);
-            chatTimer = new System.Windows.Forms.Timer { Interval = 50 };
-            chatTimer.Tick += async (sender, e) => await ChatTimer_TickAsync(sender, e);
+            //chatTimer = new System.Windows.Forms.Timer { Interval = 50 };
+            //chatTimer.Tick += async (sender, e) => await ChatTimer_TickAsync(sender, e);
             Load += Form1_Load;
         }
 
@@ -215,8 +215,8 @@ namespace Beacon
                 return;
             }
 
-            chatTimer.Start();
-            await ChatTimer_TickAsync(null, EventArgs.Empty);
+            //chatTimer.Start();
+            //await ChatTimer_TickAsync(null, EventArgs.Empty);
             memoryTimer.Start();
             await MemoryTimer_TickAsync(null, EventArgs.Empty);
             
@@ -251,13 +251,14 @@ namespace Beacon
             }
 
             var memoryData = await Task.Run(() => ReadMemoryData(processHandle, baseAddress));
-            var chatData = await Task.Run(() => ReadChatData(processHandle, baseAddress));
-            UpdateUI(memoryData, chatData);
+            //var chatData = await Task.Run(() => ReadChatData(processHandle, baseAddress));
+            UpdateUI(memoryData);
             await Task.Run(() => ExecuteSQLUpdateAsync(localIP, memoryData));
             await LoadDataIntoDataGridViewAsync();
             CloseHandle(processHandle);
         }
 
+        /*
         private async Task ChatTimer_TickAsync(object sender, EventArgs e)
         {
             Process process = FindProcessByWindowTitle("Diablo II: Resurrected");
@@ -285,6 +286,7 @@ namespace Beacon
             UpdateChat(chatData);
             CloseHandle(processHandle);
         }
+        */
 
         private dynamic ReadMemoryData(IntPtr processHandle, IntPtr baseAddress)
         {
@@ -300,6 +302,7 @@ namespace Beacon
             };
         }
 
+        /*
         private dynamic ReadChatData(IntPtr processHandle, IntPtr baseAddress)
         {
             return new
@@ -313,11 +316,12 @@ namespace Beacon
                 ChatMsgTime = ReadMsgTime(processHandle, baseAddress)
             };
         }
+        */
 
         private void StopMemoryTimerWithError(string message)
         {
             memoryTimer.Stop();
-            chatTimer.Stop();
+            //chatTimer.Stop();
             ShowError(message);
         }
 
@@ -327,7 +331,7 @@ namespace Beacon
             return ReadMemory(processHandle, targetAddress, out byte[] buffer) ? buffer[0] : (byte)0;
         }
 
-        private void UpdateUI(dynamic memoryData, dynamic chatData)
+        private void UpdateUI(dynamic memoryData)
         {
             labelHostStatus.Text = (memoryData.HostStatus == 0x02) ? "Yes" : "No";
             labelPCount.Text = memoryData.PlayerCount.ToString();
@@ -335,6 +339,7 @@ namespace Beacon
             labelPName.Text = memoryData.PlayerName;
             labelModName.Text = memoryData.ModName;
 
+            /*
             if (chatData.ChatMsgFlag != 0xD2 && chatData.ChatMsgClient != "")
             {
                 string newMessage;
@@ -361,6 +366,7 @@ namespace Beacon
                     }
                 }
             }
+            */
 
 
 
@@ -380,23 +386,24 @@ namespace Beacon
             };
 
 
-            byte[] originalArray = chatData.ChatMsgTime;
-            byte[] reversedArray = (byte[])originalArray.Clone();
+            //byte[] originalArray = chatData.ChatMsgTime;
+            //byte[] reversedArray = (byte[])originalArray.Clone();
 
-            Array.Reverse(reversedArray);
+            //Array.Reverse(reversedArray);
 
-            string originalHexString = BitConverter.ToString(originalArray).Replace("-", " ");
+            //string originalHexString = BitConverter.ToString(originalArray).Replace("-", " ");
             //string reversedHexString = BitConverter.ToString(reversedArray).Replace("-", " ").Replace(" ","");
             string reversedHexString = "64939FC3D398";
             long decimalValue = Convert.ToInt64(reversedHexString, 16);
             long decimalEpoch = decimalValue / 1000000000;
 
-            Debug.WriteLine(originalHexString);
-            Debug.WriteLine(reversedHexString);
-            Debug.WriteLine("Decimal value of reversed array: " + decimalValue);
-            Debug.WriteLine("Decimal value of reversed epoch array: " + decimalEpoch);
+            //Debug.WriteLine(originalHexString);
+            //Debug.WriteLine(reversedHexString);
+            //Debug.WriteLine("Decimal value of reversed array: " + decimalValue);
+            //Debug.WriteLine("Decimal value of reversed epoch array: " + decimalEpoch);
         }
 
+        /*
         private void UpdateChat(dynamic chatData)
         {
             if (chatData.ChatMsgFlag != 0xD2 && chatData.ChatMsgClient != "")
@@ -426,7 +433,7 @@ namespace Beacon
                 }
             }
         }
-
+        */
         private async Task ExecuteSQLUpdateAsync(string localIP, dynamic memoryData)
         {
             try

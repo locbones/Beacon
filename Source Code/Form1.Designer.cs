@@ -327,13 +327,14 @@
             listBox1.Name = "listBox1";
             listBox1.Size = new Size(697, 499);
             listBox1.TabIndex = 20;
+            listBox1.Visible = false;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ActiveCaptionText;
-            ClientSize = new Size(1523, 557);
+            ClientSize = new Size(753, 557);
             Controls.Add(listBox1);
             Controls.Add(labelModName);
             Controls.Add(label8);

@@ -14,6 +14,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = Beacon
-build_property.ProjectDir = C:\Users\djsch\D2R Files\Beacon\Beacon\
+build_property.ProjectDir = C:\Users\djsch\Github\Beacon\Source Code\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
