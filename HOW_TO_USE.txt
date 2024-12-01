@@ -1,7 +1,0 @@
-How Beacon Works:
-Beacon will automatically advertise your active tcp/ip games to all other users.
-You can find these game listings either in the program itself or in our discord chat: https://discord.com/channels/897073630868013057/1290658893747322880
-The only information stored by the program are the values you see displayed on the screen.
-All entries are volatile and remove themselves upon closing the program or game.
-
-The files included with this download may potentially be out of date, the latest source files can be found at: https://github.com/locbones/Beacon
