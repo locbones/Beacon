@@ -278,7 +278,7 @@
             gameList.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             gameList.RowTemplate.Height = 25;
             gameList.ScrollBars = ScrollBars.Vertical;
-            gameList.Size = new Size(853, 253);
+            gameList.Size = new Size(943, 253);
             gameList.TabIndex = 15;
             // 
             // label5
@@ -364,7 +364,7 @@
             labelNoGames.ForeColor = Color.Firebrick;
             labelNoGames.Location = new Point(12, 293);
             labelNoGames.Name = "labelNoGames";
-            labelNoGames.Size = new Size(853, 253);
+            labelNoGames.Size = new Size(943, 253);
             labelNoGames.TabIndex = 24;
             labelNoGames.Text = "No active games found!";
             labelNoGames.TextAlign = ContentAlignment.MiddleCenter;
@@ -397,7 +397,7 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ActiveCaptionText;
-            ClientSize = new Size(877, 557);
+            ClientSize = new Size(967, 557);
             Controls.Add(labelModVersion);
             Controls.Add(label11);
             Controls.Add(labelNoGames);

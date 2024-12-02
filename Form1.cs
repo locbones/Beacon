@@ -17,7 +17,7 @@ namespace Beacon
     public partial class Form1 : Form
     {
         #region Constants/Imports
-        public static string version = "1.0.6";
+        public static string version = "1.0.7";
         private HashSet<string> existingIPAddresses = new HashSet<string>();
         private HashSet<string> existingIPs = new HashSet<string>();
         private HashSet<string> existingPNames = new HashSet<string>();
@@ -527,9 +527,35 @@ namespace Beacon
                     var dataTable = new System.Data.DataTable();
                     await Task.Run(() => adapter.Fill(dataTable));
 
-                    foreach (DataColumn column in dataTable.Columns)
+                    if (!dataTable.Columns.Contains("averagePing"))
+                        dataTable.Columns.Add("averagePing", typeof(string));
+
+                    foreach (DataRow row in dataTable.Rows)
                     {
-                        Debug.WriteLine("Column: " + column.ColumnName);
+                        if (row["ipaddr"] != null)
+                        {
+                            string ipAddress = row["ipaddr"].ToString();
+                            if (!string.IsNullOrWhiteSpace(ipAddress))
+                            {
+                                try
+                                {
+                                    using (var ping = new Ping())
+                                    {
+                                        var reply = await ping.SendPingAsync(ipAddress, 1000);
+                                        if (reply.Status == IPStatus.Success)
+                                            row["averagePing"] = $"{reply.RoundtripTime} ms";
+                                        else
+                                            row["averagePing"] = "---";
+                                    }
+                                }
+                                catch
+                                {
+                                    row["averagePing"] = "Error";
+                                }
+                            }
+                            else
+                                row["averagePing"] = "Invalid IP";
+                        }
                     }
 
                     if (dataTable.Rows.Count == 0)
@@ -561,6 +587,7 @@ namespace Beacon
                     gameList.Columns["hardcore"].HeaderText = "   Mode";
                     gameList.Columns["modname"].HeaderText = "    Mod Name";
                     gameList.Columns["modversion"].HeaderText = " Mod Version";
+                    gameList.Columns["averagePing"].HeaderText = "  Avg. Ping";
 
                     // Set column widths, styles, and other settings
                     gameList.Columns["ipaddr"].Width = 120;
@@ -571,6 +598,7 @@ namespace Beacon
                     gameList.Columns["hardcore"].Width = 100;
                     gameList.Columns["modname"].Width = 140;
                     gameList.Columns["modversion"].Width = 120;
+                    gameList.Columns["averagePing"].Width = 100;
                     gameList.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
                     gameList.EnableHeadersVisualStyles = false;
@@ -597,7 +625,7 @@ namespace Beacon
                         column.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
                         column.HeaderCell.Style.Padding = new Padding(0);
 
-                        if (column.Name != "ipaddr")
+                        if (column.Name != "ipaddr" && column.Name != "averagePing")
                         {
                             column.ReadOnly = true;
                             column.DefaultCellStyle.SelectionBackColor = gameList.DefaultCellStyle.BackColor;
@@ -720,7 +748,7 @@ namespace Beacon
             {
                 if (gameList.Columns[e.ColumnIndex].Name == "ipaddr")
                 {
-                    string ipAddress = gameList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString();
+                    string? ipAddress = gameList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString();
 
                     if (!string.IsNullOrEmpty(ipAddress))
                         Clipboard.SetText(ipAddress);
