@@ -26,6 +26,8 @@ namespace Beacon
         private const uint PROCESS_VM_READ = 0x0010;
         private System.Windows.Forms.Timer memoryTimer;
         private string connectionString = "server=eu02-sql.pebblehost.com;uid=customer_614448_main;pwd=Wy9P#W3aO5yAbwYQVw@f;database=customer_614448_main";
+        private bool isLoadingData = false;
+        private bool isHandlingClick = false;
 
         [DllImport("kernel32.dll")]
         private static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
@@ -44,6 +46,7 @@ namespace Beacon
             memoryTimer = new System.Windows.Forms.Timer { Interval = 5000 };
             memoryTimer.Tick += async (sender, e) => await MemoryTimer_TickAsync(sender, e);
             Load += Form1_Load;
+            gameList.CellClick += gameList_CellClick;
         }
 
         private async void Form1_Load(object sender, EventArgs e)
@@ -490,9 +493,12 @@ namespace Beacon
         }
         #endregion
 
-        #region UI Management
+        #region UI Management     
         private async Task LoadDataIntoDataGridViewAsync()
         {
+            if (isLoadingData) return;
+            isLoadingData = true;
+
             try
             {
                 await PopulateModNamesAsync();
@@ -504,23 +510,18 @@ namespace Beacon
                 {
                     await connection.OpenAsync();
 
-                    // Build query depending on the modname and the checkAllGames checkbox
                     string query = "";
-                    string modnameFilter = "";
-                    if (comboBox1.Text != "")
-                        modnameFilter = comboBox1.SelectedItem.ToString();
+                    string modnameFilter = comboBox1.SelectedItem?.ToString() ?? "";
 
                     if (!checkAllGames.Checked)
                         query = "SELECT ipaddr, charname, gamediff, playercount, lobbycount, hardcore, modname, modversion FROM tcpgames";
                     else
                         query = "SELECT ipaddr, charname, gamediff, playercount, lobbycount, hardcore, modname, modversion FROM tcpgames WHERE TRIM(ipaddr) NOT LIKE '192.168.%'";
 
-                    // Apply modname filtering if not set to "All"
                     if (modnameFilter != "All")
                         query += (!checkAllGames.Checked ? " WHERE " : " AND ") + "modname = @modname";
 
                     MySqlDataAdapter adapter = new MySqlDataAdapter(query, connection);
-
                     if (modnameFilter != "All")
                         adapter.SelectCommand.Parameters.AddWithValue("@modname", modnameFilter);
 
@@ -559,13 +560,17 @@ namespace Beacon
                     }
 
                     if (dataTable.Rows.Count == 0)
+                    {
                         labelNoGames.Visible = true;
+                        gameList.DataSource = null;
+                        DrawEmptyHeaders(gameList);
+                    }
                     else
+                    {
                         labelNoGames.Visible = false;
+                        gameList.DataSource = dataTable;
+                    }
 
-                    gameList.DataSource = dataTable;
-
-                    // Additional processing for data
                     existingIPAddresses.Clear();
                     existingPCount.Clear();
                     existingLCount.Clear();
@@ -589,7 +594,7 @@ namespace Beacon
                     gameList.Columns["modversion"].HeaderText = " Mod Version";
                     gameList.Columns["averagePing"].HeaderText = "  Avg. Ping";
 
-                    // Set column widths, styles, and other settings
+                    // Set column widths and styles
                     gameList.Columns["ipaddr"].Width = 120;
                     gameList.Columns["charname"].Width = 130;
                     gameList.Columns["gamediff"].Width = 100;
@@ -599,14 +604,12 @@ namespace Beacon
                     gameList.Columns["modname"].Width = 140;
                     gameList.Columns["modversion"].Width = 120;
                     gameList.Columns["averagePing"].Width = 100;
-                    gameList.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
                     gameList.EnableHeadersVisualStyles = false;
                     gameList.ColumnHeadersDefaultCellStyle.BackColor = Color.DarkOrange;
                     gameList.ColumnHeadersDefaultCellStyle.ForeColor = Color.Black;
                     gameList.ColumnHeadersDefaultCellStyle.Font = new Font("Arial", 10, FontStyle.Bold);
                     gameList.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                    gameList.ColumnHeadersDefaultCellStyle.Padding = new Padding(0);
                     gameList.ColumnHeadersHeight = 30;
 
                     gameList.DefaultCellStyle.Font = new Font("Arial", 10);
@@ -614,36 +617,15 @@ namespace Beacon
                     gameList.ForeColor = Color.WhiteSmoke;
                     gameList.RowsDefaultCellStyle.BackColor = Color.Black;
                     gameList.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(23, 23, 23);
-                    gameList.CellBorderStyle = DataGridViewCellBorderStyle.None;
-
-                    gameList.RowHeadersDefaultCellStyle.BackColor = Color.Black;
-                    gameList.RowHeadersDefaultCellStyle.ForeColor = Color.WhiteSmoke;
 
                     foreach (DataGridViewColumn column in gameList.Columns)
                     {
                         column.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                        column.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                        column.HeaderCell.Style.Padding = new Padding(0);
-
-                        if (column.Name != "ipaddr" && column.Name != "averagePing")
-                        {
-                            column.ReadOnly = true;
-                            column.DefaultCellStyle.SelectionBackColor = gameList.DefaultCellStyle.BackColor;
-                            column.DefaultCellStyle.SelectionForeColor = gameList.DefaultCellStyle.ForeColor;
-                        }
+                        column.ReadOnly = true;
                     }
-
-                    gameList.ScrollBars = ScrollBars.None;
-                    gameList.MouseWheel += gameList_MouseWheel;
-                    gameList.EditMode = DataGridViewEditMode.EditProgrammatically;
-                    if (gameList.CurrentCell != null)
-                        gameList.CurrentCell.Selected = false;
 
                     gameList.AllowUserToAddRows = false;
                     gameList.RowHeadersVisible = false;
-
-                    gameList.CellClick += gameList_CellClick;
-                    gameList.Refresh();
 
                     if (firstDisplayedScrollingRowIndex >= 0 && firstDisplayedScrollingRowIndex < gameList.Rows.Count)
                         gameList.FirstDisplayedScrollingRowIndex = firstDisplayedScrollingRowIndex;
@@ -656,7 +638,21 @@ namespace Beacon
             {
                 Debug.WriteLine("Error loading data: " + ex.Message);
             }
+            finally
+            {
+                isLoadingData = false;
+            }
         }
+
+        private void DrawEmptyHeaders(DataGridView dataGridView)
+        {
+            foreach (DataGridViewColumn column in dataGridView.Columns)
+            {
+                column.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            }
+        }
+
+
 
         private async Task PopulateModNamesAsync()
         {
@@ -677,10 +673,8 @@ namespace Beacon
                         }
                     }
 
-                    // Get current items in comboBox1
                     List<string> currentItems = comboBox1.Items.Cast<string>().ToList();
 
-                    // Only repopulate if items have changed
                     if (!newModNames.SequenceEqual(currentItems))
                     {
                         comboBox1.Items.Clear();
@@ -744,17 +738,36 @@ namespace Beacon
 
         private void gameList_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
-            {
-                if (gameList.Columns[e.ColumnIndex].Name == "ipaddr")
-                {
-                    string? ipAddress = gameList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString();
+            if (isHandlingClick) return;
 
-                    if (!string.IsNullOrEmpty(ipAddress))
-                        Clipboard.SetText(ipAddress);
+            try
+            {
+                isHandlingClick = true;
+
+                if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+                {
+                    if (gameList.Columns[e.ColumnIndex].Name == "ipaddr")
+                    {
+                        string? ipAddress = gameList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString();
+
+                        if (!string.IsNullOrEmpty(ipAddress))
+                        {
+                            Clipboard.SetDataObject(ipAddress, true, 5, 50);
+                            AddMessageToRichTextBox("IP copied to clipboard!", Color.Orange);
+                        }
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in CellClick: {ex.Message}");
+            }
+            finally
+            {
+                isHandlingClick = false;
+            }
         }
+
 
         private async void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
